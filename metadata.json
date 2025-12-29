@@ -1,0 +1,7 @@
+{
+  "name": "Minibar EAC",
+  "description": "A comprehensive mobile-first sales and inventory management system for Minibar EAC, featuring customer tracking, product control, sales history, and detailed reporting.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
