@@ -73,6 +73,17 @@ const ReportsPage: React.FC = () => {
 
   return (
     <div className="space-y-4 pb-10">
+      <div className="flex justify-start mb-2">
+        <Button 
+          variant="secondary" 
+          fullWidth={false} 
+          className="py-1.5 px-4 text-sm" 
+          onClick={() => navigate('/')}
+        >
+          ← Voltar
+        </Button>
+      </div>
+
       <Card className="!p-0 overflow-hidden">
         <div className="flex border-b">
           <TabButton id="sales" label="Vendas" />
@@ -185,8 +196,6 @@ const ReportsPage: React.FC = () => {
           </div>
         </Card>
       )}
-
-      <Button variant="secondary" onClick={() => navigate('/')}>Voltar</Button>
     </div>
   );
 };

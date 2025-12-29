@@ -86,6 +86,17 @@ const PurchaseHistoryPage: React.FC = () => {
 
   return (
     <div className="space-y-4 pb-10">
+      <div className="flex justify-start mb-2">
+        <Button 
+          variant="secondary" 
+          fullWidth={false} 
+          className="py-1.5 px-4 text-sm" 
+          onClick={() => navigate('/')}
+        >
+          ← Voltar
+        </Button>
+      </div>
+
       {alert && <Alert type={alert.type} message={alert.msg} onClose={() => setAlert(null)} />}
 
       <Card title="📊 Consultar Histórico">
@@ -157,8 +168,6 @@ const PurchaseHistoryPage: React.FC = () => {
           )}
         </>
       )}
-
-      <Button variant="secondary" onClick={() => navigate('/')}>Voltar</Button>
 
       <ModalConfirm 
         isOpen={isModalOpen} 
