@@ -25,6 +25,9 @@ const HomePage: React.FC = () => {
         <Button onClick={() => navigate('/reports')}>
           <span className="text-xl">📈</span> Relatórios de Vendas
         </Button>
+        <Button variant="outline" onClick={() => navigate('/settings')}>
+          <span className="text-xl">⚙️</span> Configurações
+        </Button>
       </div>
     </Card>
   );

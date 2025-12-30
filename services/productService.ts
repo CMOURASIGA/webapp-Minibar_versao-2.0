@@ -1,53 +1,50 @@
 
 import { Product } from '../types';
-import { loadJSON, saveJSON } from '../utils/localStorage';
-import { INITIAL_PRODUCTS } from './mockData';
-import { generateId } from '../utils/id';
-
-const STORAGE_KEY = 'minibar_products';
+import { apiClient } from './apiClient';
 
 export const productService = {
   getAll: async (): Promise<Product[]> => {
-    const products = loadJSON<Product[]>(STORAGE_KEY, INITIAL_PRODUCTS);
-    return products.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+    const response = await apiClient.call('getProducts');
+    return (response.data || []).map((p: any) => ({
+      id: p.id,
+      name: p.nome,
+      price: p.valor,
+      stock: p.estoque
+    }));
   },
 
   getById: async (id: string): Promise<Product | null> => {
     const products = await productService.getAll();
-    return products.find(p => p.id === id) || null;
+    return products.find(p => p.id.toString() === id.toString()) || null;
   },
 
-  create: async (data: Omit<Product, 'id'>): Promise<Product> => {
+  create: async (data: Omit<Product, 'id'>): Promise<any> => {
+    return await apiClient.call('addProduct', { 
+      nome: data.name, 
+      valor: data.price, 
+      quantidade: data.stock 
+    });
+  },
+
+  update: async (id: string, data: Partial<Product>): Promise<any> => {
     const products = await productService.getAll();
-    const newProduct = { ...data, id: generateId() };
-    saveJSON(STORAGE_KEY, [...products, newProduct]);
-    return newProduct;
+    const current = products.find(p => p.id.toString() === id.toString());
+    return await apiClient.call('updateProduct', { 
+      id, 
+      nome: data.name || current?.name, 
+      valor: data.price || current?.price 
+    });
   },
 
-  update: async (id: string, data: Partial<Product>): Promise<Product> => {
-    const products = await productService.getAll();
-    const index = products.findIndex(p => p.id === id);
-    if (index === -1) throw new Error('Product not found');
-    
-    const updated = { ...products[index], ...data };
-    products[index] = updated;
-    saveJSON(STORAGE_KEY, products);
-    return updated;
+  remove: async (id: string): Promise<any> => {
+    return await apiClient.call('deleteProduct', { id });
   },
 
-  remove: async (id: string): Promise<void> => {
-    const products = await productService.getAll();
-    const filtered = products.filter(p => p.id !== id);
-    saveJSON(STORAGE_KEY, filtered);
+  registerEntry: async (productId: string, quantity: number): Promise<any> => {
+    return await apiClient.call('registerStockEntry', { productId, quantidade: quantity });
   },
 
-  registerEntry: async (productId: string, quantity: number): Promise<void> => {
-    const product = await productService.getById(productId);
-    if (!product) throw new Error('Product not found');
-    await productService.update(productId, { stock: product.stock + quantity });
-  },
-
-  adjustStock: async (productId: string, newStock: number): Promise<void> => {
-    await productService.update(productId, { stock: newStock });
+  adjustStock: async (productId: string, newStock: number): Promise<any> => {
+    return await apiClient.call('adjustStock', { productId, novoEstoque: newStock });
   }
 };
