@@ -27,7 +27,8 @@ export const salesService = {
   getPurchaseHistory: async (phone: string): Promise<Sale[]> => {
     const response = await apiClient.call('getPurchaseHistory', { telefone: phone });
     return (response.data || []).map((s: any, idx: number) => ({
-      id: `${s.data}_${idx}`, // Geramos um ID temporário para o histórico
+      // ID composto para facilitar a busca no backend depois: DATA|TELEFONE|INDEX
+      id: `${s.data}|${s.telefone}|${idx}`,
       customerName: s.nome,
       customerPhone: s.telefone,
       items: [{
@@ -44,16 +45,13 @@ export const salesService = {
   },
 
   markAsPaid: async (saleId: string): Promise<void> => {
-    // Para simplificar, o saleId no histórico é composto por DATA_IDX
-    const [dataISO] = saleId.split('_');
-    const phone = saleId.split('|')[1] || ''; // Caso tenha anexado no ID
-    // Como o ID no frontend é limitado, idealmente o getPurchaseHistory retornaria o telefone também
-    await apiClient.call('markPurchaseAsPaid', { dataISO });
+    const [dataISO, telefone] = saleId.split('|');
+    await apiClient.call('markPurchaseAsPaid', { dataISO, telefone });
   },
 
   deleteSale: async (saleId: string): Promise<void> => {
-    const [dataISO] = saleId.split('_');
-    await apiClient.call('deletePurchase', { dataISO });
+    const [dataISO, telefone] = saleId.split('|');
+    await apiClient.call('deletePurchase', { dataISO, telefone });
   },
 
   sendReceiptByEmail: async (phone: string, email: string): Promise<void> => {

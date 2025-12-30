@@ -6,14 +6,13 @@ const SETTINGS_KEY = 'minibar_settings';
 export const apiClient = {
   getScriptUrl: (): string => {
     const settings = loadJSON<{ scriptUrl?: string }>(SETTINGS_KEY, {});
-    // Prioriza variável de ambiente se existir, senão usa o localStorage
     return settings.scriptUrl || (import.meta as any).env?.VITE_GAS_URL || '';
   },
 
   async call(action: string, payload: any = {}): Promise<any> {
     const url = this.getScriptUrl();
     if (!url) {
-      throw new Error('URL do Google Apps Script não configurada.');
+      throw new Error('URL do Google Apps Script não configurada nas Configurações.');
     }
 
     try {
@@ -21,22 +20,27 @@ export const apiClient = {
         method: 'POST',
         mode: 'cors',
         headers: {
-          'Content-Type': 'text/plain;charset=utf-8', // GAS lida melhor com text/plain em POST simples
+          'Content-Type': 'text/plain;charset=utf-8',
         },
         body: JSON.stringify({ action, ...payload }),
       });
 
-      if (!response.ok) {
-        throw new Error(`Erro na API: ${response.statusText}`);
+      const text = await response.text();
+      let result;
+      
+      try {
+        result = JSON.parse(text);
+      } catch (e) {
+        console.error('Resposta não-JSON do servidor:', text);
+        throw new Error('O servidor retornou uma resposta inválida. Verifique se o Script foi implantado corretamente.');
       }
 
-      const result = await response.json();
       if (result.success === false) {
         throw new Error(result.message || 'Erro desconhecido na API.');
       }
       return result;
-    } catch (error) {
-      console.error(`Erro ao chamar ação ${action}:`, error);
+    } catch (error: any) {
+      console.error(`Erro na ação ${action}:`, error);
       throw error;
     }
   }

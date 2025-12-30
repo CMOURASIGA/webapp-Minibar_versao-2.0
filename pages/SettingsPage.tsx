@@ -38,25 +38,23 @@ const SettingsPage: React.FC = () => {
 
       {alert && <Alert type={alert.type} message={alert.msg} onClose={() => setAlert(null)} />}
 
-      <Card title="⚙️ Configurações do Sistema" subtitle="Integração com Google Sheets">
+      <Card title="⚙️ Configurações" subtitle="Integração Google Sheets">
         <Input 
-          label="URL do Web App (Google Apps Script)" 
+          label="URL do Web App" 
           value={scriptUrl} 
           onChange={(e) => setScriptUrl(e.target.value)} 
           placeholder="https://script.google.com/macros/s/.../exec"
-          helperText="Você obtém esta URL ao fazer o 'Deploy' como 'Web App' no Google Script."
         />
-        <div className="bg-blue-50 p-4 rounded-xl mb-6 text-xs text-blue-700 leading-relaxed border border-blue-100">
-          <p className="font-bold mb-1">Dica:</p>
-          <p>Se você configurar a variável <strong>VITE_GAS_URL</strong> no Vercel, este campo será preenchido automaticamente.</p>
+        <div className="bg-amber-50 p-4 rounded-xl mb-6 text-xs text-amber-800 leading-relaxed border border-amber-100">
+          <p className="font-bold mb-2">⚠️ Atenção para Erros "Not Defined":</p>
+          <p>Se você receber erros de "function not defined", certifique-se de que a função <strong>doPost</strong> e todas as outras funções (getCustomers, addProduct, etc) estão no <strong>mesmo projeto</strong> de Script no Google. Após qualquer alteração no Script, você <strong>deve</strong> criar uma "Nova Implantação" (New Deployment) para que as mudanças façam efeito.</p>
         </div>
         <Button onClick={handleSave}>Salvar Configurações</Button>
       </Card>
       
-      <Card title="Planilha Vinculada">
-        <p className="text-sm text-gray-600 mb-4">Certifique-se de que a aba de Produtos, Clientes e Vendas existem na sua planilha para evitar erros.</p>
+      <Card title="Recursos">
         <Button variant="outline" onClick={() => window.open('https://docs.google.com/spreadsheets/d/11V2jDDbLQY3XEoygMKHYLgJGeoJFskwCWLtLx_h6cVU', '_blank')}>
-          Abrir Planilha no Google Drive
+          Abrir Planilha
         </Button>
       </Card>
     </div>
