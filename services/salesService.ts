@@ -26,22 +26,30 @@ export const salesService = {
 
   getPurchaseHistory: async (phone: string): Promise<Sale[]> => {
     const response = await apiClient.call('getPurchaseHistory', { telefone: phone });
-    return (response.data || []).map((s: any, idx: number) => ({
-      // ID composto para facilitar a busca no backend depois: DATA|TELEFONE|INDEX
-      id: `${s.data}|${s.telefone}|${idx}`,
-      customerName: s.nome,
-      customerPhone: s.telefone,
-      items: [{
-        productId: '0',
-        productName: s.produto,
-        unitPrice: s.valorUnitario,
-        quantity: s.quantidade,
-        subtotal: s.subtotal
-      }],
-      status: s.status as any,
-      createdAt: s.data,
-      requestId: ''
-    }));
+    return (response.data || []).map((s: any, idx: number) => {
+      // Normaliza o status vindo da planilha (Português -> Inglês interno)
+      let normalizedStatus: SaleStatus = 'Pending';
+      if (s.status === 'Pago' || s.status === 'Paid' || s.status === 'SIM') {
+        normalizedStatus = 'Paid';
+      }
+
+      return {
+        // ID composto para facilitar a busca no backend: DATA|TELEFONE|INDEX
+        id: `${s.data}|${s.telefone}|${idx}`,
+        customerName: s.nome,
+        customerPhone: s.telefone,
+        items: [{
+          productId: '0',
+          productName: s.produto,
+          unitPrice: s.valorUnitario,
+          quantity: s.quantity || s.quantidade,
+          subtotal: s.subtotal
+        }],
+        status: normalizedStatus,
+        createdAt: s.data,
+        requestId: ''
+      };
+    });
   },
 
   markAsPaid: async (saleId: string): Promise<void> => {

@@ -1,5 +1,5 @@
 
-import { SalesReport, ProductSummaryItem, InventoryReportItem } from '../types';
+import { SalesReport, ProductSummaryItem, InventoryReportItem, SaleStatus } from '../types';
 import { apiClient } from './apiClient';
 
 export const reportsService = {
@@ -9,15 +9,22 @@ export const reportsService = {
       totalPaid: response.totalPago || 0,
       totalPending: response.totalPendente || 0,
       totalOverall: response.totalGeral || 0,
-      sales: (response.vendas || []).map((s: any, idx: number) => ({
-        id: idx.toString(),
-        customerName: s.nome,
-        customerPhone: s.telefone,
-        items: [{ productName: s.produto, subtotal: s.subtotal, quantity: s.quantidade, productId: '0', unitPrice: s.valorUnitario }],
-        status: s.status,
-        createdAt: s.data,
-        requestId: ''
-      }))
+      sales: (response.vendas || []).map((s: any, idx: number) => {
+        let normalizedStatus: SaleStatus = 'Pending';
+        if (s.status === 'Pago' || s.status === 'Paid' || s.status === 'SIM') {
+          normalizedStatus = 'Paid';
+        }
+        
+        return {
+          id: idx.toString(),
+          customerName: s.nome,
+          customerPhone: s.telefone,
+          items: [{ productName: s.produto, subtotal: s.subtotal, quantity: s.quantidade, productId: '0', unitPrice: s.valorUnitario }],
+          status: normalizedStatus,
+          createdAt: s.data,
+          requestId: ''
+        };
+      })
     };
   },
 
