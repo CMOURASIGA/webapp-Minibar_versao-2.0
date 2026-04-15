@@ -37,7 +37,7 @@ export const salesService = {
         // ID composto para facilitar a busca no backend: DATA|TELEFONE|INDEX
         id: `${s.data}|${s.telefone}|${idx}`,
         customerName: s.nome,
-        customerPhone: s.telefone,
+        customerPhone: String(s.telefone ?? ''),
         items: [{
           productId: '0',
           productName: s.produto,

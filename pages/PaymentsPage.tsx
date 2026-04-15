@@ -69,7 +69,7 @@ const PaymentsPage: React.FC = () => {
   const filteredSales = useMemo(() => {
     const normalized = normalizePhone(phoneFilter || '');
     if (!normalized) return sales;
-    return sales.filter(s => s.customerPhone.includes(normalized));
+    return sales.filter(s => String(s.customerPhone ?? '').includes(normalized));
   }, [sales, phoneFilter]);
 
   const pendingCount = filteredSales.filter(s => s.status !== 'Paid').length;

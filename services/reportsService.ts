@@ -18,7 +18,7 @@ export const reportsService = {
         return {
           id: idx.toString(),
           customerName: s.nome,
-          customerPhone: s.telefone,
+          customerPhone: String(s.telefone ?? ''),
           items: [{ productName: s.produto, subtotal: s.subtotal, quantity: s.quantidade, productId: '0', unitPrice: s.valorUnitario }],
           status: normalizedStatus,
           createdAt: s.data,
