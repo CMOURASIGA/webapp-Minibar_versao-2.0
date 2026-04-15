@@ -1,35 +1,37 @@
-
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+﻿import React, { useEffect, useState } from 'react';
 import Card from '../components/UI/Card';
 import Input from '../components/UI/Input';
 import Button from '../components/UI/Button';
 import Alert from '../components/UI/Alert';
-import Spinner from '../components/UI/Spinner';
 import Badge from '../components/UI/Badge';
+import SkeletonCard from '../components/UI/SkeletonCard';
 import { reportsService } from '../services/reportsService';
-import { maskDateInput, parseBRToISO } from '../utils/date';
+import { maskDateInput, parseBRToISO, formatISOToBR } from '../utils/date';
 import { formatBRL } from '../utils/currency';
-import { formatISOToBR } from '../utils/date';
+import { useViewport } from '../hooks/useViewport';
 
 const ReportsPage: React.FC = () => {
-  const navigate = useNavigate();
+  const { isMobile } = useViewport();
   const [activeTab, setActiveTab] = useState<'sales' | 'products' | 'inventory'>('sales');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  
+
   const [salesData, setSalesData] = useState<any>(null);
   const [productData, setProductData] = useState<any[]>([]);
   const [inventoryData, setInventoryData] = useState<any[]>([]);
+  const sortedProductData = [...productData].sort((a, b) => a.productName.localeCompare(b.productName, 'pt-BR', { sensitivity: 'base' }));
+  const sortedInventoryData = [...inventoryData].sort((a, b) => a.productName.localeCompare(b.productName, 'pt-BR', { sensitivity: 'base' }));
+  const sortedSales = salesData?.sales
+    ? [...salesData.sales].sort((a: any, b: any) => a.customerName.localeCompare(b.customerName, 'pt-BR', { sensitivity: 'base' }))
+    : [];
 
   useEffect(() => {
-    // Set default range: last 30 days
     const end = new Date();
     const start = new Date();
     start.setDate(end.getDate() - 30);
-    
+
     setStartDate(formatISOToBR(start.toISOString()));
     setEndDate(formatISOToBR(end.toISOString()));
   }, []);
@@ -37,14 +39,15 @@ const ReportsPage: React.FC = () => {
   const generateReport = async () => {
     const from = parseBRToISO(startDate);
     const to = parseBRToISO(endDate);
-    
+
     if (!from || !to) {
-      setError('Datas inválidas.');
+      setError('Datas invalidas.');
       return;
     }
+
     setError('');
     setIsLoading(true);
-    
+
     try {
       if (activeTab === 'sales') {
         const res = await reportsService.getSalesReport(from, to);
@@ -52,19 +55,25 @@ const ReportsPage: React.FC = () => {
       } else if (activeTab === 'products') {
         const res = await reportsService.getProductSummary(from, to);
         setProductData(res);
-      } else if (activeTab === 'inventory') {
+      } else {
         const res = await reportsService.getInventoryReport(from, to);
         setInventoryData(res);
       }
     } catch (e) {
-      setError('Falha ao gerar relatório.');
+      setError('Falha ao gerar relatorio.');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
-  const TabButton = ({ id, label }: { id: typeof activeTab, label: string }) => (
-    <button 
-      onClick={() => { setActiveTab(id); setSalesData(null); setProductData([]); setInventoryData([]); }}
+  const TabButton = ({ id, label }: { id: typeof activeTab; label: string }) => (
+    <button
+      onClick={() => {
+        setActiveTab(id);
+        setSalesData(null);
+        setProductData([]);
+        setInventoryData([]);
+      }}
       className={`flex-1 py-3 text-xs font-bold transition-all ${activeTab === id ? 'text-[#1e4d72] border-b-2 border-[#dc143c]' : 'text-gray-400'}`}
     >
       {label}
@@ -73,17 +82,6 @@ const ReportsPage: React.FC = () => {
 
   return (
     <div className="space-y-4 pb-10">
-      <div className="flex justify-start mb-2">
-        <Button 
-          variant="secondary" 
-          fullWidth={false} 
-          className="py-1.5 px-4 text-sm" 
-          onClick={() => navigate('/')}
-        >
-          ← Voltar
-        </Button>
-      </div>
-
       <Card className="!p-0 overflow-hidden">
         <div className="flex border-b">
           <TabButton id="sales" label="Vendas" />
@@ -92,109 +90,121 @@ const ReportsPage: React.FC = () => {
         </div>
         <div className="p-4">
           <div className="flex gap-3 mb-4">
-            <Input label="Início" value={startDate} onChange={(e) => setStartDate(maskDateInput(e.target.value))} placeholder="DD/MM/AAAA" />
-            <Input label="Fim" value={endDate} onChange={(e) => setEndDate(maskDateInput(e.target.value))} placeholder="DD/MM/AAAA" />
+            <Input label="Inicio" value={startDate} onChange={e => setStartDate(maskDateInput(e.target.value))} placeholder="DD/MM/AAAA" />
+            <Input label="Fim" value={endDate} onChange={e => setEndDate(maskDateInput(e.target.value))} placeholder="DD/MM/AAAA" />
           </div>
-          <Button onClick={generateReport} isLoading={isLoading}>Gerar Relatório</Button>
+          <Button onClick={generateReport} isLoading={isLoading}>
+            Gerar Relatorio
+          </Button>
         </div>
       </Card>
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
-
-      {isLoading && <Card><Spinner /></Card>}
+      {isLoading && <SkeletonCard variant="metric" count={3} />}
 
       {!isLoading && activeTab === 'sales' && salesData && (
         <>
           <div className="grid grid-cols-3 gap-2 mb-4">
-            <div className="bg-white/90 p-2 rounded-xl text-center border">
+            <div className="bg-white p-2 rounded-xl text-center border">
               <p className="text-[8px] uppercase font-bold text-gray-400">Pago</p>
               <p className="text-xs font-bold text-[#28a745]">{formatBRL(salesData.totalPaid)}</p>
             </div>
-            <div className="bg-white/90 p-2 rounded-xl text-center border">
+            <div className="bg-white p-2 rounded-xl text-center border">
               <p className="text-[8px] uppercase font-bold text-gray-400">Pendente</p>
               <p className="text-xs font-bold text-[#dc143c]">{formatBRL(salesData.totalPending)}</p>
             </div>
-            <div className="bg-white/90 p-2 rounded-xl text-center border">
+            <div className="bg-white p-2 rounded-xl text-center border">
               <p className="text-[8px] uppercase font-bold text-gray-400">Total</p>
               <p className="text-xs font-bold text-[#1e4d72]">{formatBRL(salesData.totalOverall)}</p>
             </div>
           </div>
-          <Card title="Vendas Detalhadas">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-[#1e4d72]/5">
-                  <tr>
-                    <th className="p-2 border-b">Data</th>
-                    <th className="p-2 border-b">Cliente</th>
-                    <th className="p-2 border-b">Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {salesData.sales.map((s: any) => (
-                    <tr key={s.id} className="hover:bg-gray-50 border-b last:border-0">
-                      <td className="p-2">{formatISOToBR(s.createdAt)}</td>
-                      <td className="p-2">{s.customerName} <br/><span className="text-[8px] text-gray-400">{s.status}</span></td>
-                      <td className="p-2 font-bold">{formatBRL(s.items.reduce((acc: number, i: any) => acc + i.subtotal, 0))}</td>
-                    </tr>
-                  ))}
-                  {salesData.sales.length === 0 && <tr><td colSpan={3} className="p-4 text-center text-gray-400">Nenhuma venda no período.</td></tr>}
-                </tbody>
-              </table>
+
+          {isMobile ? (
+            <div className="space-y-2">
+              {sortedSales.map((sale: any) => {
+                const saleTotal = sale.items.reduce((acc: number, item: any) => acc + item.subtotal, 0);
+                return (
+                  <Card key={sale.id}>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="text-sm font-semibold text-[#1B3A5C]">{sale.customerName}</h4>
+                        <p className="text-[11px] text-gray-500">{formatISOToBR(sale.createdAt)}</p>
+                      </div>
+                      <Badge variant={sale.status === 'Paid' ? 'success' : 'danger'}>
+                        {sale.status === 'Paid' ? 'Pago' : 'Pendente'}
+                      </Badge>
+                    </div>
+                    <p className="text-base font-bold mt-2">{formatBRL(saleTotal)}</p>
+                  </Card>
+                );
+              })}
             </div>
-          </Card>
+          ) : (
+            <Card title="Vendas Detalhadas">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[#1e4d72]/5">
+                    <tr>
+                      <th className="p-2 border-b">Data</th>
+                      <th className="p-2 border-b">Cliente</th>
+                      <th className="p-2 border-b">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedSales.map((s: any) => (
+                      <tr key={s.id} className="hover:bg-gray-50 border-b last:border-0">
+                        <td className="p-2">{formatISOToBR(s.createdAt)}</td>
+                        <td className="p-2">{s.customerName}</td>
+                        <td className="p-2 font-bold">{formatBRL(s.items.reduce((acc: number, i: any) => acc + i.subtotal, 0))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
         </>
       )}
 
       {!isLoading && activeTab === 'products' && productData.length > 0 && (
-        <Card title="Resumo por Produto">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-[#1e4d72]/5">
-                <tr>
-                  <th className="p-2 border-b">Produto</th>
-                  <th className="p-2 border-b">Qtd</th>
-                  <th className="p-2 border-b">Faturamento</th>
-                </tr>
-              </thead>
-              <tbody>
-                {productData.map((p, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50 border-b last:border-0">
-                    <td className="p-2 font-medium">{p.productName}</td>
-                    <td className="p-2">{p.totalQuantity}</td>
-                    <td className="p-2 font-bold">{formatBRL(p.totalRevenue)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {sortedProductData.map((item, index) => (
+            <Card key={`prod-${index}`} className="!mb-0">
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <h4 className="text-sm font-semibold text-[#1B3A5C]">{item.productName}</h4>
+                  <p className="text-xs text-gray-500">Transacoes: {item.transactionsCount}</p>
+                </div>
+                <span className="text-sm font-bold text-[#1B3A5C]">{item.totalQuantity} un</span>
+              </div>
+              <p className="text-base font-bold">{formatBRL(item.totalRevenue)}</p>
+            </Card>
+          ))}
+        </div>
       )}
 
       {!isLoading && activeTab === 'inventory' && inventoryData.length > 0 && (
-        <Card title="Relatório de Estoque">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-[#1e4d72]/5">
-                <tr>
-                  <th className="p-2 border-b">Produto</th>
-                  <th className="p-2 border-b">Ini.</th>
-                  <th className="p-2 border-b">Sai.</th>
-                  <th className="p-2 border-b">Atu.</th>
-                </tr>
-              </thead>
-              <tbody>
-                {inventoryData.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50 border-b last:border-0">
-                    <td className="p-2 font-medium">{item.productName}</td>
-                    <td className="p-2">{item.initialBalance}</td>
-                    <td className="p-2 text-red-500">{item.exits}</td>
-                    <td className="p-2 font-bold text-[#28a745]">{item.currentBalance}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {sortedInventoryData.map((item, index) => (
+            <Card key={`inv-${index}`} className="!mb-0">
+              <h4 className="text-sm font-semibold text-[#1B3A5C] mb-2">{item.productName}</h4>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div>
+                  <p className="text-gray-500">Entradas</p>
+                  <p className="font-bold">{item.entries}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Saidas</p>
+                  <p className="font-bold text-red-500">{item.exits}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Saldo Atual</p>
+                  <p className="font-bold text-[#28a745]">{item.currentBalance}</p>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   );

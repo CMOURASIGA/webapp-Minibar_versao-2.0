@@ -16,7 +16,7 @@ const Button: React.FC<ButtonProps> = ({
   className = '',
   ...props 
 }) => {
-  const baseStyles = "flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-semibold transition-all duration-200 active:scale-[0.98] shadow-md disabled:opacity-50 disabled:active:scale-100";
+  const baseStyles = "min-h-11 flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-semibold text-sm transition-all duration-200 active:scale-[0.98] shadow-md disabled:opacity-50 disabled:active:scale-100";
   
   const variants = {
     primary: "bg-[#1e4d72] text-white hover:bg-[#153a56]",

@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minibar — Protótipo de Telas</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F4F6F9;color:#1a1a1a;padding:2rem;}
+h1{font-size:22px;font-weight:500;color:#1B3A5C;margin-bottom:.25rem;}
+.subtitle{font-size:14px;color:#6b7a8d;margin-bottom:2.5rem;}
+.section-label{font-size:11px;font-weight:600;color:#6b7a8d;letter-spacing:.08em;text-transform:uppercase;margin-bottom:1rem;}
+.screens-row{display:flex;gap:1.5rem;align-items:flex-start;flex-wrap:wrap;margin-bottom:2.5rem;}
+.caption{font-size:11px;color:#6b7a8d;margin-top:.6rem;text-align:center;line-height:1.4;}
+
+/* DEVICE FRAMES */
+.phone-frame{width:240px;min-width:240px;background:#fff;border:2px solid #d0d7e2;border-radius:32px;overflow:hidden;box-shadow:0 4px 24px rgba(27,58,92,.10);}
+.phone-notch{height:26px;background:#1B3A5C;display:flex;align-items:center;justify-content:center;}
+.phone-notch span{width:52px;height:7px;background:rgba(255,255,255,.2);border-radius:10px;}
+.phone-screen{background:#F4F6F9;min-height:420px;}
+.laptop-frame{width:100%;background:#fff;border:2px solid #d0d7e2;border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(27,58,92,.10);}
+.laptop-bar{height:30px;background:#1B3A5C;display:flex;align-items:center;padding:0 14px;gap:6px;}
+.laptop-dot{width:9px;height:9px;border-radius:50%;}
+.laptop-screen{display:flex;min-height:420px;background:#F4F6F9;}
+
+/* SIDEBAR */
+.sidebar{width:52px;background:#1B3A5C;display:flex;flex-direction:column;align-items:center;padding-top:14px;gap:4px;}
+.sb-logo{width:30px;height:30px;border-radius:9px;background:#E8431A;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:600;margin-bottom:10px;}
+.sb-item{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;color:rgba(255,255,255,.45);}
+.sb-item.active{background:rgba(255,255,255,.16);color:#fff;}
+.sb-divider{width:26px;height:1px;background:rgba(255,255,255,.15);margin:4px 0;}
+
+/* TOPBAR */
+.desk-main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.desk-topbar{height:46px;background:#fff;border-bottom:1px solid #e5eaf1;display:flex;align-items:center;padding:0 18px;justify-content:space-between;}
+.desk-topbar-title{font-size:15px;font-weight:500;color:#1B3A5C;}
+.desk-action-btn{height:30px;padding:0 12px;border-radius:7px;font-size:12px;font-weight:500;border:1px solid #d0d7e2;background:transparent;color:#1B3A5C;cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
+.desk-action-btn.primary{background:#1B3A5C;color:#fff;border-color:#1B3A5C;}
+.desk-content{padding:16px;flex:1;display:flex;flex-direction:column;gap:12px;overflow:hidden;}
+
+/* METRICS */
+.metrics-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.metric-card{background:#fff;border:1px solid #e5eaf1;border-radius:10px;padding:12px 14px;}
+.metric-label{font-size:11px;color:#6b7a8d;margin-bottom:4px;}
+.metric-val{font-size:20px;font-weight:500;color:#1a1a1a;}
+.metric-delta{font-size:11px;margin-top:3px;}
+.delta-up{color:#3B6D11;} .delta-dn{color:#A32D2D;}
+
+/* MOBILE HEADER */
+.mob-header{background:#1B3A5C;padding:12px 16px 10px;display:flex;justify-content:space-between;align-items:center;}
+.mob-header-title{color:#fff;font-size:15px;font-weight:500;}
+.mob-header-sub{color:rgba(255,255,255,.55);font-size:11px;margin-top:1px;}
+.mob-icon-btn{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;}
+
+/* BOTTOM NAV */
+.mob-bottom-nav{display:flex;background:#fff;border-top:1px solid #e5eaf1;height:56px;}
+.mob-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;}
+.mob-nav-icon{font-size:15px;line-height:1;}
+.mob-nav-label{font-size:9px;color:#6b7a8d;}
+.mob-nav-item.active .mob-nav-label{color:#E8431A;font-weight:600;}
+.mob-nav-active-dot{width:4px;height:4px;border-radius:50%;background:#E8431A;margin-bottom:1px;}
+
+/* CONTENT */
+.mob-content{padding:10px;flex:1;display:flex;flex-direction:column;gap:9px;overflow:hidden;}
+.mini-card{background:#fff;border-radius:11px;border:1px solid #e5eaf1;padding:11px 13px;}
+.mini-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+.mini-card-title{font-size:13px;font-weight:500;color:#1a1a1a;}
+.mini-card-sub{font-size:11px;color:#6b7a8d;margin-top:1px;}
+.mini-card-val{font-size:17px;font-weight:500;color:#1B3A5C;}
+.mini-card-accent{font-size:17px;font-weight:500;color:#E8431A;}
+.badge{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;}
+.badge-pend{background:#FFF4F1;color:#A33010;} .badge-paid{background:#EAF3DE;color:#3B6D11;} .badge-stock{background:#EBF2FA;color:#185FA5;}
+
+/* WIZARD */
+.wizard-steps{display:flex;align-items:center;padding:10px 16px;background:#fff;border-bottom:1px solid #e5eaf1;}
+.wiz-step{display:flex;align-items:center;gap:5px;flex:1;}
+.wiz-dot{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0;}
+.wiz-dot.done{background:#1B3A5C;color:#fff;} .wiz-dot.active{background:#E8431A;color:#fff;} .wiz-dot.todo{background:#F0F2F5;color:#6b7a8d;border:1px solid #d0d7e2;}
+.wiz-label{font-size:10px;font-weight:500;}
+.wiz-step.active .wiz-label{color:#E8431A;} .wiz-step.done .wiz-label{color:#1B3A5C;} .wiz-step.todo .wiz-label{color:#6b7a8d;}
+.wiz-line{flex:1;height:1px;background:#e5eaf1;}
+
+/* PRODUCTS */
+.prod-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.prod-card{background:#fff;border-radius:10px;border:1px solid #e5eaf1;padding:10px;position:relative;}
+.prod-card-name{font-size:11px;font-weight:500;color:#1a1a1a;margin-bottom:2px;}
+.prod-card-price{font-size:13px;font-weight:500;color:#1B3A5C;}
+.prod-add-btn{position:absolute;bottom:8px;right:8px;width:20px;height:20px;border-radius:50%;background:#E8431A;color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;line-height:1;}
+.prod-emoji{font-size:22px;margin-bottom:4px;display:block;}
+.cart-badge{position:absolute;top:6px;right:6px;width:16px;height:16px;border-radius:50%;background:#E8431A;color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;}
+
+/* TABLE */
+.desk-table{background:#fff;border:1px solid #e5eaf1;border-radius:10px;overflow:hidden;}
+.desk-table-header{display:flex;padding:10px 14px;border-bottom:1px solid #e5eaf1;justify-content:space-between;align-items:center;}
+.desk-table-title{font-size:13px;font-weight:500;color:#1a1a1a;}
+.table-head-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 70px;padding:7px 14px;background:#F8FAFC;border-bottom:1px solid #e5eaf1;}
+.table-head-cell{font-size:11px;font-weight:600;color:#6b7a8d;}
+.table-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 70px;padding:9px 14px;border-bottom:1px solid #e5eaf1;align-items:center;}
+.table-row:last-child{border-bottom:none;}
+.table-cell{font-size:12px;color:#1a1a1a;}
+.table-cell.muted{color:#6b7a8d;}
+
+/* SKELETON */
+.skel{background:#E8ECF2;border-radius:4px;animation:pulse 1.5s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:.7;}50%{opacity:.35;}}
+
+/* TOAST */
+.toast{background:#1B3A5C;color:#fff;font-size:12px;padding:9px 13px;border-radius:9px;display:flex;align-items:center;gap:7px;margin:4px;}
+.toast-icon{width:18px;height:18px;border-radius:50%;background:#4CAF50;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;}
+
+.print-note{background:#EBF2FA;border:1px solid #B5D4F4;border-radius:8px;padding:12px 16px;font-size:13px;color:#185FA5;margin-bottom:2rem;}
+@media print{.print-note{display:none;}.phone-frame,.laptop-frame{box-shadow:none;}}
+</style>
+</head>
+<body>
+
+<h1>Minibar — Protótipo de Telas</h1>
+<p class="subtitle">Proposta de redesign responsivo · Mobile + Notebook · Abril 2026</p>
+
+<div class="print-note">📄 Este arquivo pode ser impresso (Ctrl+P) ou convertido em PDF para apresentação. As telas representam o design proposto e não são funcionais.</div>
+
+<!-- ==================== MOBILE SCREENS ==================== -->
+<div class="section-label">Telas Mobile (Smartphone)</div>
+<div class="screens-row">
+
+  <!-- HOME MOBILE -->
+  <div>
+    <div class="phone-frame">
+      <div class="phone-notch"><span></span></div>
+      <div class="phone-screen" style="display:flex;flex-direction:column;">
+        <div class="mob-header">
+          <div>
+            <div class="mob-header-title">Minibar</div>
+            <div class="mob-header-sub">Segunda, 13 Abr</div>
+          </div>
+          <div class="mob-icon-btn">⚙</div>
+        </div>
+        <div class="mob-content">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+            <div class="mini-card">
+              <div class="mini-card-sub">Vendas hoje</div>
+              <div class="mini-card-val">R$ 284</div>
+            </div>
+            <div class="mini-card">
+              <div class="mini-card-sub">Pendente</div>
+              <div class="mini-card-accent">R$ 95</div>
+            </div>
+          </div>
+          <div class="mini-card" style="background:#E8431A;border-color:#E8431A;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="font-size:20px;">🛒</div>
+              <div>
+                <div style="color:#fff;font-size:14px;font-weight:600;">Nova Venda</div>
+                <div style="color:rgba(255,255,255,.7);font-size:11px;">Registrar compra agora</div>
+              </div>
+              <div style="margin-left:auto;color:#fff;font-size:18px;">›</div>
+            </div>
+          </div>
+          <div style="font-size:11px;font-weight:600;color:#6b7a8d;padding:0 2px;">Últimas compras</div>
+          <div class="mini-card">
+            <div class="mini-card-header">
+              <div>
+                <div class="mini-card-title">Maria Souza</div>
+                <div class="mini-card-sub">há 12 min · 3 itens</div>
+              </div>
+              <span class="badge badge-paid">Pago</span>
+            </div>
+            <div style="font-size:13px;font-weight:500;color:#1B3A5C;">R$ 42,00</div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-card-header">
+              <div>
+                <div class="mini-card-title">João Lima</div>
+                <div class="mini-card-sub">há 1h · 5 itens</div>
+              </div>
+              <span class="badge badge-pend">Fiado</span>
+            </div>
+            <div style="font-size:13px;font-weight:500;color:#E8431A;">R$ 95,00</div>
+          </div>
+        </div>
+        <div class="mob-bottom-nav">
+          <div class="mob-nav-item active">
+            <div class="mob-nav-active-dot"></div>
+            <div class="mob-nav-icon">🏠</div>
+            <div class="mob-nav-label" style="color:#E8431A;">Início</div>
+          </div>
+          <div class="mob-nav-item"><div class="mob-nav-icon">🛒</div><div class="mob-nav-label">Vender</div></div>
+          <div class="mob-nav-item"><div class="mob-nav-icon">👥</div><div class="mob-nav-label">Clientes</div></div>
+          <div class="mob-nav-item"><div class="mob-nav-icon">📦</div><div class="mob-nav-label">Produtos</div></div>
+          <div class="mob-nav-item"><div class="mob-nav-icon">···</div><div class="mob-nav-label">Mais</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">Home mobile<br>Bottom nav + cards de resumo</div>
+  </div>
+
+  <!-- VENDA PASSO 2 -->
+  <div>
+    <div class="phone-frame">
+      <div class="phone-notch"><span></span></div>
+      <div class="phone-screen" style="display:flex;flex-direction:column;">
+        <div class="mob-header">
+          <div><div class="mob-header-title">Nova Venda</div></div>
+          <div style="font-size:10px;color:rgba(255,255,255,.6);">Passo 2 de 3</div>
+        </div>
+        <div class="wizard-steps">
+          <div class="wiz-step done">
+            <div class="wiz-dot done">✓</div>
+            <div class="wiz-label">Cliente</div>
+          </div>
+          <div class="wiz-line"></div>
+          <div class="wiz-step active">
+            <div class="wiz-dot active">2</div>
+            <div class="wiz-label">Itens</div>
+          </div>
+          <div class="wiz-line"></div>
+          <div class="wiz-step todo">
+            <div class="wiz-dot todo">3</div>
+            <div class="wiz-label">Finalizar</div>
+          </div>
+        </div>
+        <div style="padding:8px 12px;background:#fff;border-bottom:1px solid #e5eaf1;display:flex;align-items:center;gap:8px;">
+          <div style="width:26px;height:26px;border-radius:50%;background:#EBF2FA;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#185FA5;">MS</div>
+          <div>
+            <div style="font-size:12px;font-weight:500;color:#1a1a1a;">Maria Souza</div>
+            <div style="font-size:10px;color:#6b7a8d;">(21) 99999-1234</div>
+          </div>
+          <div style="margin-left:auto;background:#EBF2FA;border-radius:20px;padding:3px 9px;font-size:10px;color:#185FA5;font-weight:500;">3 itens no cart</div>
+        </div>
+        <div class="mob-content">
+          <div class="prod-grid">
+            <div class="prod-card">
+              <span class="prod-emoji">🍺</span>
+              <div class="prod-card-name">Cerveja Lata</div>
+              <div class="prod-card-price">R$ 7,00</div>
+              <div class="cart-badge">3</div>
+              <div class="prod-add-btn">+</div>
+            </div>
+            <div class="prod-card">
+              <span class="prod-emoji">🥤</span>
+              <div class="prod-card-name">Refrigerante</div>
+              <div class="prod-card-price">R$ 5,00</div>
+              <div class="prod-add-btn">+</div>
+            </div>
+            <div class="prod-card">
+              <span class="prod-emoji">💧</span>
+              <div class="prod-card-name">Agua Mineral</div>
+              <div class="prod-card-price">R$ 3,00</div>
+              <div class="prod-add-btn">+</div>
+            </div>
+            <div class="prod-card">
+              <span class="prod-emoji">🍫</span>
+              <div class="prod-card-name">Chocolate</div>
+              <div class="prod-card-price">R$ 4,50</div>
+              <div class="prod-add-btn">+</div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:10px 12px;background:#fff;border-top:1px solid #e5eaf1;display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:11px;color:#6b7a8d;">Total parcial</div>
+            <div style="font-size:16px;font-weight:600;color:#1B3A5C;">R$ 21,00</div>
+          </div>
+          <div style="background:#E8431A;color:#fff;font-size:13px;font-weight:600;padding:9px 18px;border-radius:9px;">Continuar →</div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">Venda — Passo 2 (Itens)<br>Wizard + grade de produtos</div>
+  </div>
+
+  <!-- HISTORICO MOBILE -->
+  <div>
+    <div class="phone-frame">
+      <div class="phone-notch"><span></span></div>
+      <div class="phone-screen" style="display:flex;flex-direction:column;">
+        <div class="mob-header">
+          <div><div class="mob-header-title">Histórico</div></div>
+          <div class="mob-icon-btn" style="font-size:11px;">filtro</div>
+        </div>
+        <div style="padding:9px 12px;background:#fff;border-bottom:1px solid #e5eaf1;">
+          <div style="background:#F4F6F9;border-radius:9px;padding:7px 11px;font-size:12px;color:#6b7a8d;display:flex;align-items:center;gap:7px;">
+            🔍 Buscar por telefone...
+          </div>
+        </div>
+        <div style="display:flex;gap:7px;padding:9px 12px 0;flex-wrap:nowrap;overflow:hidden;">
+          <div style="background:#1B3A5C;color:#fff;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;white-space:nowrap;">Todos</div>
+          <div style="background:#F4F6F9;color:#6b7a8d;font-size:11px;font-weight:500;padding:4px 12px;border-radius:20px;white-space:nowrap;">Fiado</div>
+          <div style="background:#F4F6F9;color:#6b7a8d;font-size:11px;font-weight:500;padding:4px 12px;border-radius:20px;white-space:nowrap;">Pagos</div>
+        </div>
+        <div class="mob-content" style="gap:7px;">
+          <div class="mini-card">
+            <div class="mini-card-header">
+              <div>
+                <div class="mini-card-title">João Lima</div>
+                <div class="mini-card-sub">13/04 · 5 itens</div>
+              </div>
+              <span class="badge badge-pend">Fiado</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:7px;">
+              <div style="font-size:14px;font-weight:600;color:#E8431A;">R$ 95,00</div>
+              <div style="background:#EBF2FA;color:#185FA5;font-size:11px;font-weight:500;padding:6px 11px;border-radius:7px;">Marcar pago</div>
+            </div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-card-header">
+              <div>
+                <div class="mini-card-title">Maria Souza</div>
+                <div class="mini-card-sub">12/04 · 3 itens</div>
+              </div>
+              <span class="badge badge-paid">Pago</span>
+            </div>
+            <div style="font-size:14px;font-weight:500;color:#1B3A5C;margin-top:7px;">R$ 42,00</div>
+          </div>
+          <div class="mini-card" style="opacity:.55;">
+            <div style="display:flex;gap:9px;align-items:center;">
+              <div class="skel" style="width:90px;height:13px;"></div>
+              <div class="skel" style="width:44px;height:17px;border-radius:20px;margin-left:auto;"></div>
+            </div>
+            <div class="skel" style="width:130px;height:11px;margin-top:7px;"></div>
+            <div class="skel" style="width:65px;height:15px;margin-top:9px;"></div>
+          </div>
+          <div class="toast">
+            <div class="toast-icon">✓</div>
+            Compra marcada como paga!
+          </div>
+        </div>
+        <div class="mob-bottom-nav">
+          <div class="mob-nav-item"><div class="mob-nav-icon">🏠</div><div class="mob-nav-label">Início</div></div>
+          <div class="mob-nav-item"><div class="mob-nav-icon">🛒</div><div class="mob-nav-label">Vender</div></div>
+          <div class="mob-nav-item"><div class="mob-nav-icon">👥</div><div class="mob-nav-label">Clientes</div></div>
+          <div class="mob-nav-item"><div class="mob-nav-icon">📦</div><div class="mob-nav-label">Produtos</div></div>
+          <div class="mob-nav-item active"><div class="mob-nav-active-dot"></div><div class="mob-nav-icon">···</div><div class="mob-nav-label" style="color:#E8431A;">Mais</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">Histórico mobile<br>Cards + skeleton + toast</div>
+  </div>
+
+</div>
+
+<!-- ==================== DESKTOP ==================== -->
+<div class="section-label">Tela Desktop / Notebook</div>
+<div class="laptop-frame">
+  <div class="laptop-bar">
+    <div class="laptop-dot" style="background:#FF5F57;"></div>
+    <div class="laptop-dot" style="background:#FEBC2E;"></div>
+    <div class="laptop-dot" style="background:#28C840;"></div>
+    <div style="flex:1;background:rgba(255,255,255,.15);border-radius:5px;height:16px;margin-left:10px;display:flex;align-items:center;padding:0 10px;">
+      <span style="font-size:10px;color:rgba(255,255,255,.5);">minibar.app</span>
+    </div>
+  </div>
+  <div class="laptop-screen">
+    <div class="sidebar">
+      <div class="sb-logo">M</div>
+      <div class="sb-divider"></div>
+      <div class="sb-item active">🏠</div>
+      <div class="sb-item">🛒</div>
+      <div class="sb-item">👥</div>
+      <div class="sb-item">📦</div>
+      <div class="sb-item">📋</div>
+      <div class="sb-item">📊</div>
+      <div style="flex:1;"></div>
+      <div class="sb-item" style="margin-bottom:10px;">⚙</div>
+    </div>
+    <div class="desk-main">
+      <div class="desk-topbar">
+        <div class="desk-topbar-title">Dashboard</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div style="font-size:12px;color:#6b7a8d;">Seg, 13 Abr 2026</div>
+          <button class="desk-action-btn primary">+ Nova Venda</button>
+        </div>
+      </div>
+      <div class="desk-content">
+        <div class="metrics-row">
+          <div class="metric-card">
+            <div class="metric-label">Vendas hoje</div>
+            <div class="metric-val">R$ 284</div>
+            <div class="metric-delta delta-up">▲ 12% vs ontem</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Pendente (fiado)</div>
+            <div class="metric-val" style="color:#E8431A;">R$ 95</div>
+            <div class="metric-delta delta-dn">2 clientes</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Itens vendidos</div>
+            <div class="metric-val">47</div>
+            <div class="metric-delta delta-up">▲ 8 vs média</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Estoque crítico</div>
+            <div class="metric-val" style="color:#BA7517;">3</div>
+            <div class="metric-delta" style="color:#6b7a8d;">produtos</div>
+          </div>
+        </div>
+
+        <div class="desk-table">
+          <div class="desk-table-header">
+            <div class="desk-table-title">Últimas compras</div>
+            <div style="display:flex;gap:7px;">
+              <button class="desk-action-btn">Filtrar</button>
+              <button class="desk-action-btn">Exportar</button>
+            </div>
+          </div>
+          <div class="table-head-row">
+            <div class="table-head-cell">Cliente</div>
+            <div class="table-head-cell">Data / Hora</div>
+            <div class="table-head-cell">Valor</div>
+            <div class="table-head-cell">Status</div>
+            <div class="table-head-cell">Ações</div>
+          </div>
+          <div class="table-row">
+            <div class="table-cell"><span style="font-weight:500;">Maria Souza</span><br><span style="font-size:10px;color:#6b7a8d;">(21) 99999-1234</span></div>
+            <div class="table-cell muted">13/04 · 14:22</div>
+            <div class="table-cell" style="font-weight:500;">R$ 42,00</div>
+            <div class="table-cell"><span class="badge badge-paid">Pago</span></div>
+            <div class="table-cell"><span style="font-size:12px;color:#6b7a8d;cursor:pointer;">ver ›</span></div>
+          </div>
+          <div class="table-row">
+            <div class="table-cell"><span style="font-weight:500;">João Lima</span><br><span style="font-size:10px;color:#6b7a8d;">(21) 98888-5678</span></div>
+            <div class="table-cell muted">13/04 · 13:05</div>
+            <div class="table-cell" style="font-weight:500;color:#E8431A;">R$ 95,00</div>
+            <div class="table-cell"><span class="badge badge-pend">Fiado</span></div>
+            <div class="table-cell"><span style="font-size:11px;color:#185FA5;cursor:pointer;font-weight:500;">pagar</span></div>
+          </div>
+          <div class="table-row">
+            <div class="table-cell"><span style="font-weight:500;">Ana Ferreira</span><br><span style="font-size:10px;color:#6b7a8d;">(21) 97777-9012</span></div>
+            <div class="table-cell muted">12/04 · 19:30</div>
+            <div class="table-cell" style="font-weight:500;">R$ 28,50</div>
+            <div class="table-cell"><span class="badge badge-paid">Pago</span></div>
+            <div class="table-cell"><span style="font-size:12px;color:#6b7a8d;cursor:pointer;">ver ›</span></div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="desk-table">
+            <div class="desk-table-header"><div class="desk-table-title">Estoque crítico</div></div>
+            <div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="font-size:12px;">🍺 Cerveja Lata</div>
+                <span class="badge" style="background:#FAEEDA;color:#633806;">3 un.</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="font-size:12px;">🍫 Chocolate</div>
+                <span class="badge" style="background:#FAEEDA;color:#633806;">1 un.</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="font-size:12px;">💧 Água Mineral</div>
+                <span class="badge" style="background:#FCEBEB;color:#501313;">0 un.</span>
+              </div>
+            </div>
+          </div>
+          <div class="desk-table">
+            <div class="desk-table-header"><div class="desk-table-title">Top produtos (hoje)</div></div>
+            <div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="font-size:12px;">🍺 Cerveja Lata</div>
+                <div style="display:flex;align-items:center;gap:7px;">
+                  <div style="width:70px;height:7px;background:#F0F2F5;border-radius:4px;overflow:hidden;"><div style="width:90%;height:100%;background:#1B3A5C;border-radius:4px;"></div></div>
+                  <span style="font-size:11px;color:#6b7a8d;">18×</span>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="font-size:12px;">🥤 Refrigerante</div>
+                <div style="display:flex;align-items:center;gap:7px;">
+                  <div style="width:70px;height:7px;background:#F0F2F5;border-radius:4px;overflow:hidden;"><div style="width:60%;height:100%;background:#1B3A5C;border-radius:4px;"></div></div>
+                  <span style="font-size:11px;color:#6b7a8d;">12×</span>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="font-size:12px;">💧 Água Mineral</div>
+                <div style="display:flex;align-items:center;gap:7px;">
+                  <div style="width:70px;height:7px;background:#F0F2F5;border-radius:4px;overflow:hidden;"><div style="width:35%;height:100%;background:#1B3A5C;border-radius:4px;"></div></div>
+                  <span style="font-size:11px;color:#6b7a8d;">7×</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+<div class="caption" style="margin-top:.6rem;margin-bottom:3rem;">Dashboard desktop — sidebar + topbar + métricas + tabela + painéis auxiliares</div>
+
+</body>
+</html>

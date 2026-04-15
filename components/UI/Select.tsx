@@ -17,7 +17,7 @@ const Select: React.FC<SelectProps> = ({ label, options, error, ...props }) => {
     <div className="mb-4 w-full">
       {label && <label className="block text-sm font-semibold text-[#1e4d72] mb-1">{label}</label>}
       <select 
-        className={`w-full px-4 py-3 rounded-xl border ${error ? 'border-red-500' : 'border-gray-200'} bg-white focus:outline-none focus:ring-2 focus:ring-[#1e4d72]/20 transition-all`}
+        className={`w-full min-h-11 text-base px-4 py-3 rounded-xl border ${error ? 'border-red-500' : 'border-gray-200'} bg-white focus:outline-none focus:ring-2 focus:ring-[#1e4d72]/20 transition-all`}
         {...props}
       >
         <option value="">Selecione...</option>
