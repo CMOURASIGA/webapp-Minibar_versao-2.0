@@ -15,6 +15,21 @@ import { formatBRL } from '../utils/currency';
 import { formatDateTimeBR, formatISOToBR } from '../utils/date';
 import { normalizePhone } from '../utils/phone';
 
+const getSaleTotal = (sale: Sale): number =>
+  sale.items.reduce((acc, item) => acc + item.subtotal, 0);
+
+const sameSaleTimestamp = (a: string, b: string): boolean => {
+  if (!a || !b) return false;
+  if (a === b) return true;
+
+  const ta = new Date(a).getTime();
+  const tb = new Date(b).getTime();
+  if (!Number.isNaN(ta) && !Number.isNaN(tb) && ta === tb) return true;
+
+  // Fallback para cobrir respostas com formatos diferentes, mantendo granularidade de minuto.
+  return formatDateTimeBR(a) === formatDateTimeBR(b);
+};
+
 const PaymentsPage: React.FC = () => {
   const { showToast } = useToast();
   const [searchParams] = useSearchParams();
@@ -60,8 +75,20 @@ const PaymentsPage: React.FC = () => {
   const pendingCount = filteredSales.filter(s => s.status !== 'Paid').length;
   const selectedSale = useMemo(() => {
     if (!selectedSaleParam) return null;
-    return filteredSales.find(s => s.createdAt === selectedSaleParam) || null;
+    return (
+      filteredSales.find(s => sameSaleTimestamp(s.createdAt, selectedSaleParam)) || null
+    );
   }, [filteredSales, selectedSaleParam]);
+
+  useEffect(() => {
+    if (!selectedSaleParam || isLoading) return;
+    if (!selectedSale) {
+      setAlert({
+        type: 'info',
+        msg: 'A venda da URL nao foi encontrada no periodo/filtro atual. Verifique telefone e datas.'
+      });
+    }
+  }, [selectedSaleParam, selectedSale, isLoading]);
 
   const markAsPaid = async () => {
     if (!saleToPay) return;
@@ -70,12 +97,17 @@ const PaymentsPage: React.FC = () => {
     try {
       // Resolve o id real pelo historico do cliente para evitar divergencia de formato de data.
       const history = await salesService.getPurchaseHistory(saleToPay.customerPhone);
+      const saleToPayTotal = getSaleTotal(saleToPay);
       const target =
         history.find(
           h =>
             h.status !== 'Paid' &&
-            formatDateTimeBR(h.createdAt) === formatDateTimeBR(saleToPay.createdAt)
-        ) || history.find(h => h.status !== 'Paid');
+            sameSaleTimestamp(h.createdAt, saleToPay.createdAt) &&
+            Math.abs(getSaleTotal(h) - saleToPayTotal) < 0.01
+        ) ||
+        history.find(
+          h => h.status !== 'Paid' && sameSaleTimestamp(h.createdAt, saleToPay.createdAt)
+        );
 
       if (!target) {
         throw new Error('Nenhuma compra pendente correspondente encontrada.');
@@ -178,7 +210,7 @@ const PaymentsPage: React.FC = () => {
               </thead>
               <tbody>
                 {filteredSales.map((sale, idx) => {
-                  const total = sale.items.reduce((acc, item) => acc + item.subtotal, 0);
+                  const total = getSaleTotal(sale);
                   const pending = sale.status !== 'Paid';
 
                   return (
