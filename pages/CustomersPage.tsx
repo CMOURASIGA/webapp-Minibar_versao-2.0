@@ -10,6 +10,12 @@ import { formatPhoneDisplay, isValidPhone, normalizePhone } from '../utils/phone
 import { CUSTOMER_REGISTRATION_FORM_URL } from '../constants';
 
 const AUTO_REFRESH_INTERVAL_MS = 8000;
+const normalizeText = (value: string): string =>
+  (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
 
 const CustomersPage: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -121,14 +127,16 @@ const CustomersPage: React.FC = () => {
   };
 
   const filteredCustomers = useMemo(() => {
-    const nameQuery = nameFilter.trim().toLowerCase();
+    const nameQuery = normalizeText(nameFilter);
     const phoneQuery = phoneFilter.replace(/\D/g, '');
 
     return [...customers]
       .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }))
       .filter(customer => {
-        const matchesName = !nameQuery || customer.name.toLowerCase().includes(nameQuery);
-        const matchesPhone = !phoneQuery || customer.phone.replace(/\D/g, '').includes(phoneQuery);
+        const customerName = normalizeText(customer.name);
+        const customerPhone = (customer.phone || '').replace(/\D/g, '');
+        const matchesName = !nameQuery || customerName.includes(nameQuery);
+        const matchesPhone = !phoneQuery || customerPhone.includes(phoneQuery);
         return matchesName && matchesPhone;
       });
   }, [customers, nameFilter, phoneFilter]);
