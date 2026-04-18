@@ -23,6 +23,15 @@ function cachePutJson_(key, obj, seconds) {
   try { getCache_().put(key, JSON.stringify(obj), Math.max(1, Math.min(21600, seconds||60))); } catch(e) {}
 }
 function cacheRemove_(key) { try { getCache_().remove(key); } catch(e) {} }
+function parseCustomerRowId_(id) {
+  const raw = (id || '').toString().trim();
+  const withPrefix = raw.match(/^row:(\d+)$/i);
+  const numericOnly = raw.match(/^(\d+)$/);
+  const row = withPrefix
+    ? parseInt(withPrefix[1], 10)
+    : (numericOnly ? parseInt(numericOnly[1], 10) : NaN);
+  return Number.isFinite(row) && row >= 2 ? row : null;
+}
 function normalizePhone_(tel) {
   let digits = (tel || '').toString().replace(/\D/g, '');
   if (!digits) return '';
@@ -69,15 +78,19 @@ function getCustomers() {
     // Coluna B = nome, Coluna F = telefone
     const data = sheet.getRange(2, 1, lastRow - 1, 6).getValues();
 
-    const byPhone = {};
-    data.forEach(row => {
+    const customers = [];
+    data.forEach((row, idx) => {
+      const rowNumber = idx + 2;
       const nome = (row[1] || '').toString().trim();
       const telefone = normalizePhone_(row[5]);
-      if (!nome || !telefone) return;
-      byPhone[telefone] = { nome: nome, telefone: telefone };
-    });
+      if (!nome) return;
 
-    const customers = Object.keys(byPhone).map(k => byPhone[k]);
+      customers.push({
+        id: `row:${rowNumber}`,
+        nome: nome,
+        telefone: telefone || ''
+      });
+    });
 
     const sorted = sortByName(customers, 'nome');
     cachePutJson_('customers_v2', sorted, 60);
@@ -185,6 +198,7 @@ function getCustomerByPhone(telefone) {
   try {
     const customers = getCustomers();
     const t = normalizePhone_(telefone);
+    if (!t) return null;
     return customers.find(customer => normalizePhone_(customer.telefone) === t) || null;
   } catch (error) {
     console.error('Erro ao buscar cliente por telefone:', error);
@@ -263,79 +277,136 @@ function registerPurchase(purchaseData) {
 function updateCustomer(customerData) {
   try {
     cacheRemove_('customers_v2');
-    if (!customerData || !customerData.telefone || !customerData.nome) {
+    if (!customerData || !customerData.nome) {
       throw new Error('Dados do cliente inválidos para atualização.');
     }
 
     const sheet = SpreadsheetApp.openById(CUSTOMERS_SPREADSHEET_ID).getSheetByName(CUSTOMERS_SHEET_NAME);
     if (!sheet) throw new Error('Aba de clientes não encontrada: ' + CUSTOMERS_SHEET_NAME);
 
-    const normalizedPhone = normalizePhone_(customerData.telefone);
-    if (!normalizedPhone) {
-      return { success: false, message: 'Telefone inválido para atualização.' };
+    const data = sheet.getDataRange().getValues();
+    const lastRow = data.length;
+    let targetRowIndex = null;
+
+    const rowFromId = parseCustomerRowId_(customerData.id);
+    if (rowFromId && rowFromId <= lastRow) {
+      targetRowIndex = rowFromId;
     }
 
-    const data = sheet.getDataRange().getValues();
-    let updated = false;
-
-    for (let i = 1; i < data.length; i++) {
-      const phoneInRow = normalizePhone_(data[i][5]); // Coluna F
-      if (phoneInRow && phoneInRow === normalizedPhone) {
-        sheet.getRange(i + 1, 2).setValue(customerData.nome); // Coluna B
-        updated = true;
-        break;
+    if (!targetRowIndex && customerData.telefoneAnterior) {
+      const previousPhone = normalizePhone_(customerData.telefoneAnterior);
+      if (previousPhone) {
+        for (let i = 1; i < data.length; i++) {
+          const phoneInRow = normalizePhone_(data[i][5]); // Coluna F
+          if (phoneInRow && phoneInRow === previousPhone) {
+            targetRowIndex = i + 1;
+            break;
+          }
+        }
       }
     }
 
-    if (updated) {
-      return { success: true, message: 'Cliente atualizado com sucesso!' };
-    } else {
+    if (!targetRowIndex && customerData.telefone) {
+      const normalizedPhone = normalizePhone_(customerData.telefone);
+      if (normalizedPhone) {
+        for (let i = 1; i < data.length; i++) {
+          const phoneInRow = normalizePhone_(data[i][5]); // Coluna F
+          if (phoneInRow && phoneInRow === normalizedPhone) {
+            targetRowIndex = i + 1;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!targetRowIndex) {
       return { success: false, message: 'Cliente não encontrado.' };
     }
+
+    const currentPhoneNormalized = normalizePhone_(sheet.getRange(targetRowIndex, 6).getValue());
+
+    const rawPhone = customerData.telefone == null
+      ? (sheet.getRange(targetRowIndex, 6).getValue() || '').toString().trim()
+      : customerData.telefone.toString().trim();
+
+    let normalizedPhoneToSave = '';
+    if (rawPhone !== '') {
+      normalizedPhoneToSave = normalizePhone_(rawPhone);
+      if (!normalizedPhoneToSave) {
+        return { success: false, message: 'Telefone inválido para atualização.' };
+      }
+
+      // Só valida duplicidade se o telefone foi alterado.
+      if (normalizedPhoneToSave !== currentPhoneNormalized) {
+        for (let i = 1; i < data.length; i++) {
+          const rowIndex = i + 1;
+          if (rowIndex === targetRowIndex) continue;
+          const phoneInRow = normalizePhone_(data[i][5]);
+          if (phoneInRow && phoneInRow === normalizedPhoneToSave) {
+            return { success: false, message: 'Este telefone já está cadastrado.' };
+          }
+        }
+      }
+    }
+
+    sheet.getRange(targetRowIndex, 2).setValue((customerData.nome || '').toString().trim()); // Coluna B
+    sheet.getRange(targetRowIndex, 6).setValue(normalizedPhoneToSave); // Coluna F
+    return { success: true, message: 'Cliente atualizado com sucesso!' };
   } catch (error) {
     Logger.log('Erro ao atualizar cliente: ' + error.message);
     return { success: false, message: 'Erro no servidor: ' + error.message };
   }
 }
 
-function deleteCustomer(customerPhone) {
+function deleteCustomer(customerRef) {
   try {
     cacheRemove_('customers_v2');
-    if (!customerPhone) {
+    const refId = customerRef && typeof customerRef === 'object' ? customerRef.id : '';
+    const refPhone = customerRef && typeof customerRef === 'object' ? customerRef.telefone : customerRef;
+
+    if (!refId && !refPhone) {
       throw new Error('Telefone do cliente não fornecido.');
-    }
-
-    const normalizedPhone = normalizePhone_(customerPhone);
-    if (!normalizedPhone) {
-      return { success: false, message: 'Telefone inválido para exclusão.' };
-    }
-
-    // Trava de segurança: verificar se o cliente tem compras
-    const purchaseHistory = getPurchaseHistory(normalizedPhone);
-    if (purchaseHistory.length > 0) {
-      return { success: false, message: 'Não é possível excluir. Este cliente possui compras registradas.' };
     }
 
     const sheet = SpreadsheetApp.openById(CUSTOMERS_SPREADSHEET_ID).getSheetByName(CUSTOMERS_SHEET_NAME);
     if (!sheet) throw new Error('Aba de clientes não encontrada: ' + CUSTOMERS_SHEET_NAME);
 
     const data = sheet.getDataRange().getValues();
-    let deleted = false;
+    let targetRowIndex = null;
 
-    for (let i = data.length - 1; i >= 1; i--) {
-      const phoneInRow = normalizePhone_(data[i][5]); // Coluna F
-      if (phoneInRow && phoneInRow === normalizedPhone) {
-        sheet.deleteRow(i + 1);
-        deleted = true;
-        break;
+    const rowFromId = parseCustomerRowId_(refId);
+    if (rowFromId && rowFromId <= data.length) {
+      targetRowIndex = rowFromId;
+    }
+
+    if (!targetRowIndex && refPhone) {
+      const normalizedPhone = normalizePhone_(refPhone);
+      if (!normalizedPhone) {
+        return { success: false, message: 'Telefone inválido para exclusão.' };
+      }
+      for (let i = data.length - 1; i >= 1; i--) {
+        const phoneInRow = normalizePhone_(data[i][5]); // Coluna F
+        if (phoneInRow && phoneInRow === normalizedPhone) {
+          targetRowIndex = i + 1;
+          break;
+        }
       }
     }
 
-    if (deleted) {
-      return { success: true, message: 'Cliente excluído com sucesso!' };
-    } else {
+    if (!targetRowIndex) {
       return { success: false, message: 'Cliente não encontrado para excluir.' };
     }
+
+    const phoneInTargetRow = normalizePhone_(sheet.getRange(targetRowIndex, 6).getValue());
+    if (phoneInTargetRow) {
+      const purchaseHistory = getPurchaseHistory(phoneInTargetRow);
+      if (purchaseHistory.length > 0) {
+        return { success: false, message: 'Não é possível excluir. Este cliente possui compras registradas.' };
+      }
+    }
+
+    sheet.deleteRow(targetRowIndex);
+    return { success: true, message: 'Cliente excluído com sucesso!' };
   } catch (error) {
     Logger.log('Erro ao excluir cliente: ' + error.message);
     return { success: false, message: 'Erro no servidor: ' + error.message };
@@ -983,8 +1054,13 @@ function doPost(e) {
       case 'getCustomers': result = { success: true, data: getCustomers() }; break;
       case 'getCustomerByPhone': result = { success: true, data: getCustomerByPhone(request.telefone) }; break;
       case 'addCustomer': result = addCustomer({ nome: request.nome, telefone: request.telefone }); break;
-      case 'updateCustomer': result = updateCustomer({ nome: request.nome, telefone: request.telefone }); break;
-      case 'deleteCustomer': result = deleteCustomer(request.telefone); break;
+      case 'updateCustomer': result = updateCustomer({
+        id: request.id,
+        nome: request.nome,
+        telefone: request.telefone,
+        telefoneAnterior: request.telefoneAnterior
+      }); break;
+      case 'deleteCustomer': result = deleteCustomer({ id: request.id, telefone: request.telefone }); break;
       
       case 'getProducts': result = { success: true, data: getProducts() }; break;
       case 'addProduct': result = addProduct(request); break;
