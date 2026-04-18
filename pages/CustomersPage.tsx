@@ -16,6 +16,9 @@ const normalizeText = (value: string): string =>
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim();
+const normalizePhoneDigits = (value: string): string => (value || '').replace(/\D/g, '');
+const stripCountryCode55 = (digits: string): string =>
+  digits.startsWith('55') && digits.length > 11 ? digits.slice(2) : digits;
 
 const CustomersPage: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -128,7 +131,8 @@ const CustomersPage: React.FC = () => {
     }
   };
 
-  const applyFilters = () => {
+  const applyFilters = async () => {
+    await loadCustomers(false);
     setNameFilterApplied(nameFilterInput);
     setPhoneFilterApplied(phoneFilterInput);
   };
@@ -142,15 +146,22 @@ const CustomersPage: React.FC = () => {
 
   const filteredCustomers = useMemo(() => {
     const nameQuery = normalizeText(nameFilterApplied);
-    const phoneQuery = phoneFilterApplied.replace(/\D/g, '');
+    const phoneQuery = normalizePhoneDigits(phoneFilterApplied);
+    const phoneQueryWithout55 = stripCountryCode55(phoneQuery);
 
     return [...customers]
       .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }))
       .filter(customer => {
         const customerName = normalizeText(customer.name);
-        const customerPhone = (customer.phone || '').replace(/\D/g, '');
+        const customerPhone = normalizePhoneDigits(customer.phone || '');
+        const customerPhoneWithout55 = stripCountryCode55(customerPhone);
         const matchesName = !nameQuery || customerName.includes(nameQuery);
-        const matchesPhone = !phoneQuery || customerPhone.includes(phoneQuery);
+        const matchesPhone =
+          !phoneQuery ||
+          customerPhone.includes(phoneQuery) ||
+          customerPhone.includes(phoneQueryWithout55) ||
+          customerPhoneWithout55.includes(phoneQuery) ||
+          customerPhoneWithout55.includes(phoneQueryWithout55);
         return matchesName && matchesPhone;
       });
   }, [customers, nameFilterApplied, phoneFilterApplied]);
