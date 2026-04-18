@@ -22,8 +22,10 @@ const CustomersPage: React.FC = () => {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
-  const [nameFilter, setNameFilter] = useState('');
-  const [phoneFilter, setPhoneFilter] = useState('');
+  const [nameFilterInput, setNameFilterInput] = useState('');
+  const [phoneFilterInput, setPhoneFilterInput] = useState('');
+  const [nameFilterApplied, setNameFilterApplied] = useState('');
+  const [phoneFilterApplied, setPhoneFilterApplied] = useState('');
   const [alert, setAlert] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<string | null>(null);
@@ -126,9 +128,21 @@ const CustomersPage: React.FC = () => {
     }
   };
 
+  const applyFilters = () => {
+    setNameFilterApplied(nameFilterInput);
+    setPhoneFilterApplied(phoneFilterInput);
+  };
+
+  const clearFilters = () => {
+    setNameFilterInput('');
+    setPhoneFilterInput('');
+    setNameFilterApplied('');
+    setPhoneFilterApplied('');
+  };
+
   const filteredCustomers = useMemo(() => {
-    const nameQuery = normalizeText(nameFilter);
-    const phoneQuery = phoneFilter.replace(/\D/g, '');
+    const nameQuery = normalizeText(nameFilterApplied);
+    const phoneQuery = phoneFilterApplied.replace(/\D/g, '');
 
     return [...customers]
       .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }))
@@ -139,7 +153,7 @@ const CustomersPage: React.FC = () => {
         const matchesPhone = !phoneQuery || customerPhone.includes(phoneQuery);
         return matchesName && matchesPhone;
       });
-  }, [customers, nameFilter, phoneFilter]);
+  }, [customers, nameFilterApplied, phoneFilterApplied]);
 
   return (
     <div className="space-y-4 pb-10">
@@ -151,18 +165,30 @@ const CustomersPage: React.FC = () => {
       >
         <Input
           label="Nome (filtro)"
-          value={nameFilter}
-          onChange={e => setNameFilter(e.target.value)}
+          value={nameFilterInput}
+          onChange={e => setNameFilterInput(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter') applyFilters();
+          }}
           placeholder="Buscar por nome"
         />
         <Input
           label="Telefone (filtro)"
-          value={phoneFilter}
-          onChange={e => setPhoneFilter(e.target.value.replace(/\D/g, '').slice(0, 13))}
+          value={phoneFilterInput}
+          onChange={e => setPhoneFilterInput(e.target.value.replace(/\D/g, '').slice(0, 13))}
+          onKeyDown={e => {
+            if (e.key === 'Enter') applyFilters();
+          }}
           placeholder="Buscar por telefone"
           maxLength={13}
         />
-        <div className="flex gap-3 items-center">
+        <div className="flex gap-3 items-center flex-wrap">
+          <Button variant="primary" fullWidth={false} onClick={applyFilters}>
+            Pesquisar
+          </Button>
+          <Button variant="outline" fullWidth={false} onClick={clearFilters}>
+            Limpar
+          </Button>
           <Button variant="success" onClick={openCustomerRegistrationForm}>
             Abrir Formulario de Cadastro
           </Button>
