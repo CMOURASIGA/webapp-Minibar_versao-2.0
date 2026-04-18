@@ -15,6 +15,7 @@ import { Product } from '../types';
 import { normalizePhone, isValidPhone } from '../utils/phone';
 import { formatBRL } from '../utils/currency';
 import { generateRequestId } from '../utils/id';
+import { CUSTOMER_REGISTRATION_FORM_URL } from '../constants';
 
 const RegisterSalePage: React.FC = () => {
   const { items, customerPhone, customerName, setCustomerInfo, addItem, removeItem, clearCart, total } = useCart();
@@ -25,6 +26,7 @@ const RegisterSalePage: React.FC = () => {
   const [phone, setPhone] = useState(customerPhone);
   const [step, setStep] = useState(0);
   const [alert, setAlert] = useState<{ type: 'success' | 'error' | 'info'; msg: string } | null>(null);
+  const [customerNotFound, setCustomerNotFound] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const sortedProducts = [...products].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }));
 
@@ -50,14 +52,43 @@ const RegisterSalePage: React.FC = () => {
       const customer = await customerService.getByPhone(val);
       if (customer) {
         setCustomerInfo(val, customer.name);
+        setCustomerNotFound(false);
         setAlert({ type: 'success', msg: `Cliente encontrado: ${customer.name}` });
       } else {
         setCustomerInfo(val, '');
+        setCustomerNotFound(true);
         setAlert({ type: 'error', msg: 'Cliente nao encontrado. Verifique o cadastro.' });
       }
     } else {
       setCustomerInfo(val, '');
+      setCustomerNotFound(false);
       if (val.length === 13) setAlert({ type: 'error', msg: 'Telefone invalido.' });
+    }
+  };
+
+  const openCustomerRegistrationForm = () => {
+    window.open(CUSTOMER_REGISTRATION_FORM_URL, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleRetryLookup = async () => {
+    if (!isValidPhone(phone)) {
+      setAlert({ type: 'error', msg: 'Telefone invalido.' });
+      return;
+    }
+
+    try {
+      const customer = await customerService.getByPhone(phone);
+      if (customer) {
+        setCustomerInfo(phone, customer.name);
+        setCustomerNotFound(false);
+        setAlert({ type: 'success', msg: `Cliente encontrado: ${customer.name}` });
+      } else {
+        setCustomerInfo(phone, '');
+        setCustomerNotFound(true);
+        setAlert({ type: 'info', msg: 'Cliente ainda nao encontrado. Finalize o cadastro no formulario e tente novamente.' });
+      }
+    } catch (e) {
+      setAlert({ type: 'error', msg: 'Erro ao consultar cliente.' });
     }
   };
 
@@ -157,6 +188,21 @@ const RegisterSalePage: React.FC = () => {
             maxLength={13}
           />
           <Input label="Nome do Cliente" value={customerName} readOnly disabled className="bg-gray-100" />
+          {customerNotFound && (
+            <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3">
+              <p className="text-sm text-amber-900 mb-3">
+                Cliente nao encontrado. Cadastre no formulario oficial e depois reconsulte.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button variant="carmim" fullWidth={false} onClick={openCustomerRegistrationForm}>
+                  Abrir Formulario de Cadastro
+                </Button>
+                <Button variant="outline" fullWidth={false} onClick={handleRetryLookup}>
+                  Ja cadastrei, Reconsultar
+                </Button>
+              </div>
+            </div>
+          )}
           <Button onClick={() => setStep(1)} disabled={!canContinueFromCustomer}>
             Continuar
           </Button>

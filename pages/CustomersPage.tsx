@@ -7,6 +7,7 @@ import ModalConfirm from '../components/UI/ModalConfirm';
 import { Customer } from '../types';
 import { customerService } from '../services/customerService';
 import { normalizePhone, isValidPhone, formatPhoneDisplay } from '../utils/phone';
+import { CUSTOMER_REGISTRATION_FORM_URL } from '../constants';
 
 const CustomersPage: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -27,6 +28,10 @@ const CustomersPage: React.FC = () => {
     setCustomers(list);
   };
 
+  const openCustomerRegistrationForm = () => {
+    window.open(CUSTOMER_REGISTRATION_FORM_URL, '_blank', 'noopener,noreferrer');
+  };
+
   const handleSave = async () => {
     if (!name || !isValidPhone(phone)) {
       setAlert({ type: 'error', msg: 'Preencha nome e telefone validos.' });
@@ -43,8 +48,9 @@ const CustomersPage: React.FC = () => {
           setAlert({ type: 'error', msg: 'Este telefone ja esta cadastrado.' });
           return;
         }
-        await customerService.create({ name, phone });
-        setAlert({ type: 'success', msg: 'Cliente cadastrado com sucesso.' });
+        openCustomerRegistrationForm();
+        setAlert({ type: 'success', msg: 'Formulario aberto. Finalize o cadastro e depois atualize a lista.' });
+        return;
       }
 
       resetForm();
@@ -81,7 +87,10 @@ const CustomersPage: React.FC = () => {
     <div className="space-y-4 pb-10">
       {alert && <Alert type={alert.type} message={alert.msg} onClose={() => setAlert(null)} />}
 
-      <Card title={editingCustomer ? 'Editar Cliente' : 'Adicionar Cliente'}>
+      <Card
+        title={editingCustomer ? 'Editar Cliente' : 'Adicionar Cliente'}
+        subtitle={editingCustomer ? undefined : 'Novos clientes sao cadastrados no formulario oficial.'}
+      >
         <Input label="Nome" value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Joao da Silva" />
         <Input
           label="Telefone"
@@ -92,7 +101,14 @@ const CustomersPage: React.FC = () => {
           maxLength={13}
         />
         <div className="flex gap-3">
-          <Button variant="success" onClick={handleSave}>Salvar Cliente</Button>
+          <Button variant="success" onClick={handleSave}>
+            {editingCustomer ? 'Salvar Cliente' : 'Abrir Formulario de Cadastro'}
+          </Button>
+          {!editingCustomer && (
+            <Button variant="outline" fullWidth={false} onClick={loadCustomers}>
+              Atualizar Lista
+            </Button>
+          )}
           {editingCustomer && <Button variant="secondary" onClick={resetForm}>Cancelar</Button>}
         </div>
       </Card>
